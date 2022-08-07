@@ -13,9 +13,9 @@ compatibility ridiculously easy, and makes the development process more consiste
 If you aren't overly technical, you might want a hand getting this bot set up.
 I tried to make it relatively easy, and it will get more so over time, but certain
 things still require direct database access to set up. If you're pretty technical,
-then see "Running This Bot" below.
+then see "[Running This Bot](#running-this-bot)" below.
 
-**If you've reached this sentence, read the entire rest of this section before
+**If you've reached this sentence, read the entire rest of the usage section before
 proceeding, or you will find out sometime in the future that you missed a huge
 chunk of functionality.**
 
@@ -125,7 +125,7 @@ and, as noted below, I'm not trying to secure an enterprise here.
 In a sense, you're right! `docker-compose` isn't the most powerful of orchestrators,
 and it certainly can act a little counterintuitive compared to a docker swarm,
 etc. But, the fact that you're able to point that out tells me that you know
-enough to also easily power that compose file to a configuration for the
+enough to also easily convert that compose file to a configuration for the
 orchestrator of your choosing. As for why I continue to use it: it's easy.
 I'm not running some enterprise server or something, and this is an easy way
 to spin up three images with backing storage as needed that just works.
