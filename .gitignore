@@ -1,0 +1,7 @@
+*.o
+*.d
+test.cpp
+a.out
+settings.hpp
+.DS_Store
+botterage

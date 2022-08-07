@@ -1,0 +1,40 @@
+version: '2'
+services:
+    botterage:
+        image: botterage:latest
+        container_name: botterage
+        restart: always
+        depends_on:
+            - botdb
+        environment:
+            - DBNAME=botterage
+            - DBUSER=bot
+            - DBPASS=PleaseTouchMyBott
+            - DBSERV=botdb
+    botterage-http:
+        image: botterage-http:latest
+        container_name: botterage-http
+        restart: always
+        depends_on:
+            - botdb
+        environment:
+            - DBNAME=botterage
+            - DBUSER=bot
+            - DBPASS=PleaseTouchMyBott
+            - DBSERV=botdb
+        ports:
+            - "8000:8000"
+    botdb:
+        image: mariadb:10.7
+        restart: always
+        environment:
+            - MARIADB_ROOT_PASSWORD=RootInHell
+            - MARIADB_DATABASE=botterage
+            - MARIADB_USER=bot
+            - MARIADB_PASSWORD=PleaseTouchMyBott
+        volumes:
+            - db_vol:/var/lib/mysql
+            - "$PWD/db_schema.sql:/docker-entrypoint-initdb.d/schema.sql"
+
+volumes:
+    db_vol:

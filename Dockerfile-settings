@@ -1,0 +1,13 @@
+FROM gcc:11
+
+RUN apt-get update && apt-get install -y libfcgi-dev spawn-fcgi libmysql++-dev openssl
+
+ADD . /src
+
+WORKDIR /src
+
+RUN make vars.tsv botterage-http
+
+EXPOSE 8000
+
+CMD spawn-fcgi -p 8000 -n botterage-http

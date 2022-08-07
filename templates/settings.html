@@ -1,0 +1,164 @@
+Content-Type: text/html
+{headers}
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Bot Settings</title>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+	<script
+		src="https://code.jquery.com/jquery-3.6.0.min.js"
+		integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+		crossorigin="anonymous"></script>
+	
+	<style>
+		#main>div:nth-child(odd) {
+			background-color: lightgray;
+		}
+	</style>
+	
+	<script>
+		var unset_val; // the value that indicates a variable is actually unset.
+		var changed = new Set();
+		
+		function saveChanged(e) {
+			e.target.disabled = true;
+			var data = {};
+			for (var x of changed) {
+				if ($("[name=" + x + "-set]:checked").val() == "unset") {
+					data[x] = unset_val;
+				} else {
+					data[x] = $("[name=" + x + "]").val();
+				}
+			}
+			
+			$.ajax('/vars', {
+				data: JSON.stringify(data),
+				contentType: "application/json",
+				type: 'POST'
+			}).done(function(data) {
+				alert(data.message);
+				changed.clear();
+			}).fail(function(x, y, z) {
+				e.target.disabled = false;
+				console.error(x);
+				console.error(y);
+				console.error(z);
+				alert("Failed to update values");
+			}).always(() => {
+				
+			});
+		}
+		
+		function populate_vars(vars) {
+			var main = document.getElementById("main");
+			for (var val of vars) {
+				var row = document.createElement('div');
+				main.appendChild(row);
+				var el = document.createElement('h3');
+				el.innerText = val.name;
+				row.appendChild(el);
+				el = document.createElement('div');
+				row.appendChild(el);
+				
+				var el2, el3;
+				
+				var unset = val.value == unset_val;
+				
+				el3 = document.createElement('div');
+				el.appendChild(el3);
+				
+				el2 = document.createElement('label');
+				el3.appendChild(el2);
+				el3 = el2;
+				
+				el2 = document.createElement('input');
+				el2.type = 'radio';
+				el2.name = val.name + "-set";
+				el2.value = 'unset';
+				
+				if (unset) el2.checked = true;
+				
+				el3.appendChild(el2);
+				el2 = document.createTextNode(' Unset');
+				el3.append(el2);
+				
+				el2 = document.createElement('input');
+				el2.type = 'radio';
+				el2.name = val.name + "-set";
+				el2.value = 'set';
+				
+				if (!unset) el2.checked = true;
+				
+				el3 = el2;
+				
+				el.appendChild(el2);
+				
+				el2 = document.createElement('input');
+				el2.name = val.name;
+				el.appendChild(el2);
+				if (val.secret) el2.type = 'password';
+				
+				if (!unset) el2.value = val.value;
+				
+				el2.disabled = unset;
+				
+				el2 = document.createElement('div');
+				el.appendChild(el2);
+				el2.className = "text-sm";
+				el2.innerText = val.description;
+				
+				if (val["default"]) {
+					el2 = document.createElement('div');
+					el.appendChild(el2);
+					el2.className = "text-sm";
+					el2.innerText = "(If unset: " + val["default"] + ")";
+				}
+				
+			}
+			
+			// add listeners for changes to set/unset,
+			// as well as to keep track of what's been changed since last save.
+			$("input[name$=-set]").change(function(e) {
+				$("input[name=" + e.target.name.slice(0, -4) + "]").attr('disabled', e.target.value == 'unset');
+				changed.add(e.target.name.slice(0, -4));
+				$("#saveButton").attr('disabled', false);
+			});
+			$("input:not([type=radio])").change(function(e) {
+				changed.add(e.target.name);
+				$("#saveButton").attr('disabled', false);
+			});
+		}
+		
+		$(document).ready(function() {
+			$.get('app_settings')
+			.done(function(data) {
+				unset_val = data.unset_var_value;
+				$.get('vars')
+				.done(populate_vars);
+			});
+			
+			$("#saveButton").click(saveChanged);
+		});
+	</script>
+</head>
+<body>
+	<div>
+		<button id="saveButton" class="btn btn-primary" disabled style="position: fixed; right: 10px; bottom: 10px">Save Settings</button>
+	</div>
+	<div id="main" class="container">
+		<div class="row text-center">
+			<div class="col">
+				<h2>Bot Administrative Variables</h2>
+			</div>
+		</div>
+		<div class="row text-center">
+			<div class="col">
+				These values affect how the bot runs, connects to twitch, etc.
+				Do not change any values that you do not understand.
+			</div>
+		</div>
+		<hr />
+	</div>
+</body>
+</html>

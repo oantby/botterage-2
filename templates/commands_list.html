@@ -1,0 +1,82 @@
+Content-Type: text/html
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Bot Commands</title>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+	<script
+		src="https://code.jquery.com/jquery-3.6.0.min.js"
+		integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+		crossorigin="anonymous"></script>
+	
+	<script>
+		function populateCommands(commands) {
+			tbody = document.getElementById("cmdList");
+			if (!tbody) {
+				console.error("Failed to get command list tbody");
+				return;
+			}
+			
+			tbody.innerHTML = "";
+			
+			for (val of Object.values(commands)) {
+				var tr = document.createElement('tr');
+				var el = document.createElement('th');
+				tr.appendChild(el);
+				el.innerText = val.command;
+				el = document.createElement('td');
+				tr.appendChild(el);
+				el.innerText = val.response;
+				el = document.createElement('td');
+				tr.appendChild(el);
+				el.innerText = val.cooldown;
+				el = document.createElement('td');
+				tr.appendChild(el);
+				
+				el.innerText = ["owner","mod","sub"].includes(val.user_level) ?
+					val.user_level : "any";
+				
+				tbody.appendChild(tr);
+				
+			}
+		}
+		
+		$(document).ready(function() {
+			$.get(
+				'commands'
+			).done(function(data, status, xhr) {
+				populateCommands(data);
+			}).fail(function(one, two, three) {
+				console.log(one);
+				console.log(two);
+				console.log(three);
+			});
+		});
+	</script>
+</head>
+<body>
+	<div class="container">
+		<div class="row">
+			<div class="col text-center">
+				<h2>Bot Commands</h2>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<table class="table table-striped" id="cmdTable">
+					<thead class="table-dark text-center">
+						<th>Command</th>
+						<th>Response</th>
+						<th>Cooldown</th>
+						<th>Required<br />User Level</th>
+					</thead>
+					<tbody class="text-break" id="cmdList">
+						
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
