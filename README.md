@@ -2,12 +2,6 @@
 This is oantby's Twitch Chat bot, botterage.  It was designed for twitch.tv/slayerage,
 but is built around the idea of being reusable for other channels.
 
-## Now in containers!
-
-So, here's the thing.  I don't really *love* containerization.  It just sits
-as an odd solution in a lot of situations to me.  That said, it makes cross-platform
-compatibility ridiculously easy, and makes the development process more consistent.
-
 ## Usage
 
 If you aren't overly technical, you might want a hand getting this bot set up.
