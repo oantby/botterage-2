@@ -107,6 +107,50 @@ Does the streamer like fruit?
 
 Deletes the variable `var-name`.
 
+### Static Variables
+
+There are some variables, not declared with `!declare`, that are supported by all
+normal commands. These can be used to fill in information in the bot's response.
+The functionality of these variables is provided by the `commands` module.
+Some variables are provided by other modules, as listed, but `commands` must
+be enabled for any of them to work.
+The built-ins are:
+
+- `$(user)` - replaced with the name of the user invoking the command.
+- `$(toUser)` - replaced with the first word starting with `@` in the invoking message,
+or the invoking user if no `@` was specified.
+- `$(greeting)` - replaces the whole message with the greeting for the user.
+This is usually "Hey there $(user) casHey //", but can be customized per-user
+in the `users` database table.
+- `$(addCom)` - treats the command as if it is `!addcmd`, allowing you to
+rename `!addcmd` to whatever you want
+- `$(editCom)` - treats the command as if it is `!editcmd`, allowing you to
+rename `!editcmd` to whatever you want
+- `$(delCom)` - treats the command as if it is `!delcmd`, allowing you to
+rename `!delcmd` to whatever you want
+- `$(random)` - always used as `($(random) low high)`, replaced with a random
+number in the range `[low, high]`.
+- `$(declare)` - treats the command as if it is `!declare`, allowing you to
+rename `!declare` to whatever you want.
+- `$(delVar)` - treats the command as if it is `!delvar`, allowing you to
+rename `!delvar` to whatever you want.
+
+Provided by the `uptime` module:
+
+- `$(uptime)` - replaced with how long the stream has been active in hours,
+minutes, and seconds. See "Settings" under "Customization" for changing the
+response when the stream is offline.
+- `$(puptime)` - replaced with how long the stream has been active in DOGGO
+time (time times seven).
+
+Provided by the `twitchevents` module:
+
+- `$(shoutout)` - Replaces the response with a shoutout for a user. The message, as well
+as additional followup messages, are defined on the settings page.
+- `$(raid)` - Replaces the response with a note to everyone that we're raiding
+a channel! The message, as well as followup messages, are defined on the
+settings page.
+
 ## Running This Bot
 
 This repository ships with a docker-compose file (that, *gasp* has a default password
