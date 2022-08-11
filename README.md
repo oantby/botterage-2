@@ -195,9 +195,11 @@ be public.
 
 * Isn't the twitch chat channel (IRC) unencrypted?
 
-Yes. It is. That certainly is a downside, isn't it? Twitch also has a websocket
+~~Yes. It is. That certainly is a downside, isn't it? Twitch also has a websocket
 approach to chat, which someday I may use. But, as it stands, a websocket client
 in c++ would take me more than a handful of minutes, and I personally like
 building that kind of thing out myself - it's a nice way to keep the brain
 flexible. Plus, I've already written a websocket server before, so the client
-should be easy, relatively speaking - just need to not be lazy.
+should be easy, relatively speaking - just need to not be lazy.~~
+
+Nope.
