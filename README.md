@@ -1,4 +1,7 @@
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/donate/?business=MP6AZ5W3Z89MU)
+
 # botterage
+
 This is oantby's Twitch Chat bot, botterage.  It was designed for twitch.tv/slayerage,
 but is built around the idea of being reusable for other channels.
 
@@ -203,3 +206,13 @@ flexible. Plus, I've already written a websocket server before, so the client
 should be easy, relatively speaking - just need to not be lazy.~~
 
 Nope.
+
+## Support Me
+
+I'm not going to act like I'm a huge help to the open source community or something.
+I'm not overly active, and I "contribute" by making things I like and posting
+them. There's nothing noble about it. BUT, if you like what I make and you
+want me to spend more time making that kind of thing, or you just want to
+give me a pat on the back, you are more than welcome to through paypal:
+
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/donate/?business=MP6AZ5W3Z89MU)
