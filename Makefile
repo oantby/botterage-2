@@ -4,7 +4,7 @@ obj = $(src:.cpp=.o)
 dep = $(obj:.o=.d)
 
 LDFLAGS=-L /usr/lib64 -L /usr/local/lib -L /usr/lib64/mysql -lsqlite3 \
--lcurl -lmysqlclient -lmysqlpp -pthread -ldl -Wl,--dynamic-list=dynlist
+-lcurl -lmysqlclient -lmysqlpp -lssl -lcrypto -pthread -ldl -Wl,--dynamic-list=dynlist
 
 CXX = g++
 CXXFLAGS = -Wall -include include/logging.hpp -std=c++17 -I include -I /usr/include/mysql -I /usr/include \

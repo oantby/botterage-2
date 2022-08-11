@@ -11,6 +11,10 @@
 #include <cstring>
 #include <signal.h>
 #include <utils.hpp>
+#include <openssl/err.h>
+#include <openssl/ssl.h>
+#include <fcntl.h>
+#include <poll.h>
 
 bool twitchIRCConnection::openConnection(string channel, string user, string auth) {
 	struct sockaddr_in serv_addr;
@@ -24,6 +28,11 @@ bool twitchIRCConnection::openConnection(string channel, string user, string aut
 		return false;
 	}
 	
+	// set socket as nonblocking for proper openssl select() usage.
+	int flags = fcntl(twitchSocket, F_GETFL, 0);
+	flags |= O_NONBLOCK;
+	fcntl(twitchSocket, F_SETFL, flags);
+	
 	server = gethostbyname("irc.chat.twitch.tv");
 	if (server == NULL) {
 		logmsg(LVL1, "Couldn't resolve irc.chat.twitch.tv: %", strerror(errno));
@@ -34,33 +43,90 @@ bool twitchIRCConnection::openConnection(string channel, string user, string aut
 	bzero((char *)&serv_addr,sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
 	bcopy((char *)server->h_addr,(char *)&serv_addr.sin_addr.s_addr,server->h_length);
-	serv_addr.sin_port = htons(6667);//Twitch IRC port
+	serv_addr.sin_port = htons(6697);//Twitch IRC port
 	
-	if (connect(twitchSocket,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0) {
-		logmsg(LVL1, "Error connecting to twitch: %", strerror(errno));
+	pollfd fdpoll;
+	memset(&fdpoll, 0, sizeof(fdpoll));
+	fdpoll.fd = twitchSocket;
+	fdpoll.events = POLLOUT;
+	
+	if (int ret = connect(twitchSocket,(struct sockaddr *)&serv_addr,sizeof(serv_addr));
+		errno == EINPROGRESS) {
+		// wait for the connection to finish.
+		errno = 0;
+		if (poll(&fdpoll, 1, 10000) <= 0) {
+			logmsg(LVL1, "Connection to twitch timed out (%)", strerror(errno));
+			return false;
+		}
+	} else if (ret < 0) {
+		logmsg(LVL1, "Failed to connect to twitch: %", strerror(errno));
+	}
+	
+	if ((ctx = SSL_CTX_new(TLS_client_method())) == NULL) {
+		logmsg(LVL1, "Couldn't initialize tls context: %", strerror(errno));
 		return false;
 	}
+	
+	SSL_CTX_load_verify_locations(ctx, NULL, "/etc/ssl/certs");
+	
+	ssl = SSL_new(ctx);
+	SSL_set_fd(ssl,twitchSocket);
+	int ret;
+	while ((ret = SSL_connect(ssl)) == -1) {
+		bool fail = false;
+		switch (SSL_get_error(ssl, ret)) {
+			case SSL_ERROR_ZERO_RETURN:
+			case SSL_ERROR_SYSCALL:
+			case SSL_ERROR_SSL:
+				// that's a failure.
+				fail = true;
+				break;
+			// all other codes are success
+		}
+		if (fail) {
+			logmsg(LVL1, "Failed to connect secure socket: %", ERR_error_string(ERR_get_error(), NULL));
+			close(twitchSocket);
+			SSL_free(ssl);
+			SSL_CTX_free(ctx);
+			return false;
+		}
+		
+		if (poll(&fdpoll, 1, 10000) <= 0) {
+			logmsg(LVL1, "Failed to securely connect");
+			close(twitchSocket);
+			SSL_free(ssl);
+			SSL_CTX_free(ctx);
+			return false;
+		}
+	}
+	
+	logmsg(LVL1, "Secure IRC connected");
 	
 	//send authentication.  Note, this function doesn't care about the result; if your oauth token is invalid, that's your problem
 	outBuffer = "PASS " + auth + "\r\nNICK " + user + "\r\nJOIN #" + channel + "\r\n";
-	if (write(twitchSocket,outBuffer.c_str(),outBuffer.size()) < 0) {
+	if (SSL_write(ssl,outBuffer.c_str(),outBuffer.size()) < 0) {
 		logmsg(LVL1, "Couldn't write to IRC socket: %", strerror(errno));
 		return false;
 	}
+	fdpoll.events = POLLIN;
+	poll(&fdpoll, 1, 10000);
 	
 	//make sure something came back, then totally ignore it.
 	bzero(inBuffer,sizeof(inBuffer));
-	if (read(twitchSocket,inBuffer,sizeof(inBuffer)-1) < 0) {
+	if (SSL_read(ssl,inBuffer,sizeof(inBuffer)-1) < 0) {
 		logmsg(LVL1, "Couldn't read from IRC socket: %", strerror(errno));
 		return false;
 	}
+	fdpoll.events = POLLOUT;
+	poll(&fdpoll, 1, 10000);
 	
 	//request capabilities to get more user info
 	outBuffer = "CAP REQ :twitch.tv/commands\r\nCAP REQ :twitch.tv/tags\r\n";
-	if (write(twitchSocket,outBuffer.c_str(),outBuffer.size()) < 0) {
+	if (SSL_write(ssl,outBuffer.c_str(),outBuffer.size()) < 0) {
 		logmsg(LVL1, "Couldn't request tags or commands: %", strerror(errno));
 		return false;
 	}
+	poll(&fdpoll, 1, 10000);
 	
 	logmsg(LVL1, "Now connected");
 	channelName = channel;
@@ -71,11 +137,14 @@ void twitchIRCConnection::pong() {
 	// twitch uses PING and PONG messages to maintain a heartbeat between client
 	// and server.  this is the PONG.
 	outBuffer = "PONG :tmi.twitch.tv\r\n";
-	write(twitchSocket,outBuffer.c_str(),outBuffer.size());
+	SSL_write(ssl,outBuffer.c_str(),outBuffer.size());
 	logmsg(LVL3, "PING:PONG");
 }
 
 void twitchIRCConnection::closeConnection() {
+	SSL_shutdown(ssl);
+	SSL_free(ssl);
+	SSL_CTX_free(ctx);
 	close(twitchSocket);
 	twitchSocket = 0;
 	channelName.clear();
@@ -199,13 +268,11 @@ bool twitchIRCConnection::processString(const string &in, twitchMessage &msg) {
 }
 
 bool twitchIRCConnection::getMessage(twitchMessage &msg) {
-	fd_set rfds;
-	struct timeval tv;
-	FD_ZERO(&rfds);
-	FD_SET(twitchSocket,&rfds);
-	tv.tv_sec = 600;
-	tv.tv_usec = 0;
 	string in;
+	pollfd fdpoll;
+	memset(&fdpoll, 0, sizeof(fdpoll));
+	fdpoll.fd = twitchSocket;
+	fdpoll.events = POLLIN;
 	// string, completion status (did I get a newline)
 	static deque<pair<string, bool> > pending;
 	
@@ -215,17 +282,50 @@ bool twitchIRCConnection::getMessage(twitchMessage &msg) {
 		if (ret) return true;
 	}
 	
-	while (select(twitchSocket+1,&rfds,NULL,NULL,&tv) > 0) {
+	while (poll(&fdpoll, 1, 600000) > 0) {
 		//look for messages on a 10 minute cooldown.
-		
-		//in some implementations, select() updates tv, so we set it back.
-		tv.tv_sec = 600;
-		tv.tv_usec = 0;
 		
 		msg.clear();
 		
 		bzero(inBuffer,sizeof(inBuffer));
-		int bytes = read(twitchSocket,inBuffer,sizeof(inBuffer)-1);
+		
+		// here we do some stupid shenanigans for ssl
+		bool keep_reading = true;
+		bool have_data = false;
+		int bytes;
+		
+		do {
+			bytes = SSL_read(ssl,inBuffer,sizeof(inBuffer)-1);
+			switch (SSL_get_error(ssl, bytes)) {
+				case SSL_ERROR_NONE:
+					keep_reading = false;
+					have_data = true;
+					break;
+				case SSL_ERROR_ZERO_RETURN:
+					logmsg(LVL1, "Exiting due to a 0-byte read");
+					return false;
+					break;
+				case SSL_ERROR_WANT_READ:
+					// data wasn't ready; try again when more network data comes.
+					keep_reading = false;
+					have_data = false;
+					break;
+				case SSL_ERROR_WANT_WRITE:
+					// doesn't make a whole lot of sense here, but ok.
+					keep_reading = false;
+					have_data = false;
+					break;
+				case SSL_ERROR_SYSCALL:
+					logmsg(LVL1, "Exiting due to syscall error");
+				default:
+					return false;
+					break;
+			}
+			
+			
+		} while (SSL_pending(ssl) && keep_reading);
+		if (!have_data) continue;
+		
 		if (bytes == -1) {
 			logmsg(LVL1, "Failed to read data from socket: %", strerror(errno));
 			continue;
@@ -290,5 +390,5 @@ bool twitchIRCConnection::sendMessage(string msg) {
 	logmsg(LVL2, "[Me]: %", msg);
 	
 	msg = "JOIN #" + channelName + "\r\nPRIVMSG #" + channelName + " :" + msg + "\r\n";
-	return write(twitchSocket,msg.c_str(),msg.size()) > 0;
+	return SSL_write(ssl,msg.c_str(),msg.size()) > 0;
 }
