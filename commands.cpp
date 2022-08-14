@@ -418,7 +418,8 @@ void addCom(const twitchMessage *msg, string *resp, vector<command *> *matches) 
 		i++;
 	} catch (...) {
 		logmsg(LVL1, "Invalid new command: %", m[i]);
-		*resp = msg->user.displayName + ", Couldn't create command.  Invalid regex.  See syntax on wikipedia https://en.wikipedia.org/wiki/Regular_expression#Syntax";
+		*resp = msg->user.displayName + ", Couldn't create command.  Invalid regex.  "
+			"See syntax on wikipedia https://en.wikipedia.org/wiki/Regular_expression#Syntax";
 		return;
 	}
 	for (; i < m.size(); i++) {
