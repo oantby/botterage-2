@@ -285,6 +285,15 @@ void replaceUserVars(string &s) {
 						to_string(++get<1>(var.second)));
 					// update the value in the db.
 					userVarDbUpdate(var.first.substr(2, var.first.size() - 3));
+				} else if (spot > 1 && s.substr(spot - 2, 2) == "--") {
+					if (get<1>(var.second) == numeric_limits<int64_t>::min()) {
+						twitchState *state = twitchState::getInstance();
+						state->conn.sendMessage("Congrats on the overflow");
+					}
+					s.replace(spot - 2, var.first.size() + 2,
+						to_string(--get<1>(var.second)));
+					// update the value in the db.
+					userVarDbUpdate(var.first.substr(2, var.first.size() - 3));
 				} else {
 					s.replace(spot, var.first.size(), to_string(get<1>(var.second)));
 				}
