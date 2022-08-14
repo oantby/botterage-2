@@ -1,5 +1,5 @@
 src = $(wildcard *.cpp)
-src := $(filter-out inventory.cpp commandList.cpp botterage-http.cpp, $(src))
+src := $(filter-out inventory.cpp botterage-http.cpp, $(src))
 obj = $(src:.cpp=.o)
 dep = $(obj:.o=.d)
 
@@ -21,11 +21,6 @@ stringextensions.o include/settings.hpp
 	g++ -std=c++17 $(INCFLAGS) -L /usr/lib64 -L /usr/local/lib \
 	-L /usr/lib64/mysql -lmysqlpp -lmysqlclient inventory.cpp \
 	stringextensions.o -o inventory
-
-commandList : commandList.cpp include/DBConnPool.hpp DBConnPool.o \
-include/commands.hpp include/botterage-db.hpp
-	g++ -std=c++17 $(INCFLAGS) $(LDFLAGS) commandList.cpp DBConnPool.o \
-	-o commandList
 
 vars.tsv : $(src)
 	echo -e 'Variable\tDefault\tSecret?\tDescription' > vars.tsv

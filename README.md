@@ -70,19 +70,23 @@ to identify the command, you can use a single word that would've matched the com
 
 Declares a variable that can then be placed into the responses of commands.
 This variable can be a string or a number. Iff the variable is a number, then
-commands can also increment the value of the variable by one as follows:
+commands can also increment or decrement the value of the variable by one as follows:
 
 ```
 !declare deathcount 0
 --> I've set $(deathcount) to 0
 !addcmd -cd=0 -ul=mod ^!death\+ The death counter has increased to ++$(deathcount)
 --> Command ^!death\+ added successfully
+!addcmd -cd=0 -ul=mod ^!death- The death counter has decreased to --$(deathcount)
+--> Command ^!death- added successfully
 !addcmd ^!deathcount The death count is at $(deathcount)
 --> Command ^!deathcount added successfully
 !death+
 --> The death counter has increased to 1
 !deathcount
 --> The death count is at 1
+!death-
+--> The death counter has decreased to 0
 ```
 
 String variables cannot be changed except with a new `!declare` command,
